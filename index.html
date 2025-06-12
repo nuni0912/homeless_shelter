@@ -444,7 +444,7 @@
       ttt: {//去外面找工作
         bg: '找工作.png',
         speech: '我決定先不參加社工安排的職能課，試著自己去市區找自己應付得來又能多賺點錢的工作。',
-        autoNext: '',
+        autoNext: 'd51',
         choices: []
       },
       d51: {//去外面找工作
@@ -790,7 +790,13 @@
     // 預載scene圖片
     Object.values(scenes).forEach(s => { const img = new Image(); img.src = `assets/${s.bg}`; img.onload = updateLoading; img.onerror = updateLoading; });
     lauDialogs.concat(interDialogs, ruleImgs).forEach(fn => { const img = new Image(); img.src = `assets/${fn}`; img.onload = updateLoading; img.onerror = updateLoading; });
-    videoAssets.forEach(fn => { const vid = document.createElement('video'); vid.src = `assets/${fn}`; vid.preload = 'auto'; vid.onloadeddata = updateLoading; vid.onerror = updateLoading; });
+    videoAssets.forEach(fn => {
+  const vid = document.createElement('video');
+  vid.src = `assets/${fn}`;
+  vid.preload = 'metadata';           // 只抓影片標頭
+  vid.onloadedmetadata = updateLoading; // 標頭讀完就 +1
+  vid.onerror = updateLoading;
+});
 
     const loadingScreen = document.getElementById('loadingScreen');
     const preContainer = document.getElementById('preContainer');
