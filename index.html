@@ -6,81 +6,103 @@
 <!--① 取代 / 加在原 viewport，重點是 viewport-fit=cover -->
 <meta name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0;}
-  html,body{width:100%;height:100%;overflow:hidden;font-family:sans-serif;}
-  #loadingScreen,
-#preContainer,
-#gameContainer{
-  position:fixed;
-  top:0;
-  left:50%;
-  transform:translateX(-50%);
-  width:375px;             /* 手機畫面尺寸 */
-  height:667px;
-  padding-top:var(--safe-top);
-  padding-bottom:var(--safe-bot);
-}
-:root{
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bot: env(safe-area-inset-bottom, 0px);
-}
-@media (max-width:480px){
-  #loadingScreen,
-  #preContainer,
-  #gameContainer{
-    left:0;
-    transform:none;
-    width:100vw;
-    height:100dvh;         /* 不被工具列吃掉的動態視口 */
-    border:none;
-    box-shadow:none;
-  }
-}
-#loadingScreen{
-  background:#000 url('assets/sad.png') center/cover no-repeat;
-  display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:100;
-}    #loadingBar{width:80%;height:10px;background:#444;border-radius:5px;overflow:hidden;margin-top:10px;}
-    #loadingProgress{width:0;height:100%;background:#fff;}
-    #loadingText{color:#fff;font-size:18px;}
-    #preContainer video,
-    #preContainer img:not(#laiReplyBtn):not(#agreementImg):not(#readBtn){
-      position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;
-    }
-    #loadingText,
-#loadingBar,
-#tapHint,
-#choicesContainer{
-  bottom:calc(var(--safe-bot) + 20px);
-}
-    #preContainer #agreementImg{position:absolute;top:0;left:0;width:100%;height:auto;object-fit:contain;display:none;z-index:150;}
-    #preContainer #laiReplyBtn,#preContainer #readBtn{
-      position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
-      width:300px;height:auto;cursor:pointer;display:none;z-index:200;
-    }
-    #tapHint{
-      position:absolute;bottom:20px;left:50%;transform:translateX(-50%);width:100%;
-      text-align:center;color:#fff;font-size:16px;text-shadow:none;
-      z-index:120;display:none;
-    }
-    #gameContainer{
-      display:none;width:375px;height:667px;position:fixed;overflow:hidden;
-      border:1px solid #ccc;box-shadow:0 0 12px rgba(0,0,0,.2);z-index:10;
-    }
-    #bgImage{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:1;}
-    #speechText{
-      position:absolute;bottom:150px;left:5%;width:90%;padding:12px 16px;background:rgba(255,255,255,.8);
-      font-size:16px;border-radius:12px;line-height:1.5;z-index:3;text-align:left;
-    }
-    #choicesContainer{
-      position:absolute;bottom:15px;left:50%;transform:translateX(-50%);
-      width:90%;display:flex;flex-direction:column;align-items:center;z-index:4;
-    }
-    .choice-button{width:100%;padding:12px 16px;margin:8px 0;border:2px solid #000;border-radius:15px;background:#fff;font-size:15px;cursor:pointer;}
-    .choice-button:hover{background:#f0f0f0;}
-    #clickOverlay{position:absolute;top:0;left:0;width:100%;height:100%;z-index:2;}
-    #overlayContainer img,#overlayContainer video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;}
-  </style>
+      <style>
+        /* ---------------- 全域 ---------------- */
+        *{box-sizing:border-box;margin:0;padding:0;}
+        html,body{width:100%;height:100%;overflow:hidden;font-family:sans-serif;}
+      
+        /* ---------------- 共用容器（桌機為 375×667 卡片） ---------------- */
+        #loadingScreen,
+        #preContainer,
+        #gameContainer{
+          position:fixed;          /* 置中用 fixed + translate */
+          top:0;
+          left:50%;
+          transform:translateX(-50%);
+          width:375px;             /* 卡片寬 */
+          height:667px;            /* 卡片高 */
+          padding-top:var(--safe-top);
+          padding-bottom:var(--safe-bot);
+        }
+      
+        /* iPhone 安全區 */
+        :root{
+          --safe-top: env(safe-area-inset-top, 0px);
+          --safe-bot: env(safe-area-inset-bottom, 0px);
+        }
+      
+        /* ---------------- loading 畫面 ---------------- */
+        #loadingScreen{
+          background:#000 url('assets/sad.png') center/cover no-repeat;
+          display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:100;
+        }
+        #loadingBar{width:80%;height:10px;background:#444;border-radius:5px;overflow:hidden;margin-top:10px;}
+        #loadingProgress{width:0;height:100%;background:#fff;}
+        #loadingText{color:#fff;font-size:18px;}
+      
+        /* ---------------- preContainer 封面 / 影片 / 圖片 ---------------- */
+        #preContainer video,
+        #preContainer img:not(#laiReplyBtn):not(#agreementImg):not(#readBtn){
+          position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;
+        }
+        #tapHint,
+        #loadingText,
+        #loadingBar,
+        #choicesContainer{
+          bottom:calc(var(--safe-bot) + 20px);
+        }
+        #preContainer #agreementImg{position:absolute;top:0;left:0;width:100%;height:auto;object-fit:contain;display:none;z-index:150;}
+        #preContainer #laiReplyBtn,
+        #preContainer #readBtn{
+          position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
+          width:300px;height:auto;cursor:pointer;display:none;z-index:200;
+        }
+        #tapHint{
+          position:absolute;bottom:20px;left:50%;transform:translateX(-50%);width:100%;
+          text-align:center;color:#fff;font-size:16px;text-shadow:none;z-index:120;display:none;
+        }
+      
+        /* ---------------- gameContainer 主劇情 ---------------- */
+        #gameContainer{               /* ← 只出現這一次 */
+          display:none;               /* 預設不顯示 */
+          overflow:hidden;
+          border:1px solid #ccc;
+          box-shadow:0 0 12px rgba(0,0,0,.2);
+          z-index:10;
+        }
+        #bgImage{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:1;}
+        #speechText{
+          position:absolute;bottom:150px;left:5%;width:90%;
+          padding:12px 16px;background:rgba(255,255,255,.8);
+          font-size:16px;border-radius:12px;line-height:1.5;z-index:3;text-align:left;
+        }
+        #choicesContainer{
+          position:absolute;bottom:15px;left:50%;transform:translateX(-50%);
+          width:90%;display:flex;flex-direction:column;align-items:center;z-index:4;
+        }
+        .choice-button{
+          width:100%;padding:12px 16px;margin:8px 0;
+          border:2px solid #000;border-radius:15px;background:#fff;font-size:15px;cursor:pointer;
+        }
+        .choice-button:hover{background:#f0f0f0;}
+        #clickOverlay{position:absolute;top:0;left:0;width:100%;height:100%;z-index:2;}
+        #overlayContainer img,
+        #overlayContainer video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;}
+      
+        /* ---------------- 手機 ≤480px：拉滿全螢幕 ---------------- */
+        @media (max-width:480px){
+          #loadingScreen,
+          #preContainer,
+          #gameContainer{
+            left:0;                  /* 取消 50% 偏移 */
+            transform:none;
+            width:100vw;             /* 吃滿寬 */
+            height:100dvh;           /* 動態視口高 */
+            border:none;             /* 手機不留邊框 */
+            box-shadow:none;
+          }
+        }
+      </style>      
 </head>
 <body>
   <!-- 載入畫面 -->
