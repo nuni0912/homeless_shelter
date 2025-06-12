@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <!-- === MOD 1: 新增 viewport，讓行動裝置以實際寬度渲染並禁用縮放 === -->
+  <!-- 讓裝置以實際寬度渲染，並禁止縮放 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>街後餘生</title>
   <style>
@@ -20,18 +20,18 @@
       height: 667px;
     }
 
-    /* === MOD 2: 行動裝置 ≤ 430px 時滿版鋪滿 =========================== */
+    /* === 行動裝置 ≤ 430px 時滿版鋪滿 =============================== */
     @media (max-width: 430px) {
       #loadingScreen, #preContainer, #gameContainer {
         position: fixed;
-        inset: 0;            /* top/right/bottom/left: 0 */
-        width: 100vw;        /* 視窗寬度 */
-        height: 100svh;      /* Safe viewport height，避開瀏海、URL bar */
-        transform: none;     /* 取消水平置中位移，避免被推到左外側 */
+        inset: 0;
+        width: 100vw;
+        height: 100svh;
+        transform: none;
       }
     }
 
-    /* 其餘樣式（未動） ------------------------------------------------- */
+    /* 其餘樣式 ----------------------------------------------------- */
     #loadingScreen { background: #000; display: flex; align-items: center; justify-content: center; flex-direction: column; z-index: 100; }
     #loadingBar    { width: 80%; height: 10px; background: #444; border-radius: 5px; overflow: hidden; margin-top: 10px; }
     #loadingProgress { width: 0; height: 100%; background: #fff; }
@@ -82,10 +82,7 @@
   </div>
 
 <script>
-/************************  劇情資料大表  *************************
-*  你原來的 scenes 物件很大，這裡直接貼回去即可。
-*  ↓↓↓↓↓  把整個 scenes 物件貼在此處 ↓↓↓↓↓                    */
-const scenes = {
+const scenes = window.scenesDataPlaceholder ||  {
    accept: {
         bg: 'day3.png',
         speech: '第一次踏進安置機構，印入我眼簾的這棟雙層樓的老屋，鐵皮屋頂鏽蝕、牆面斑駁，但中庭寬闊，四周圍繞著寢室。',
@@ -704,7 +701,6 @@ const scenes = {
         choices: []
       },
 };
-/****************************************************************/ 
 
 /* === UI 相關靜態資源 ================================================= */
 const lauDialogs   = ['賴對話1.png','賴對話2.png','賴對話3.png','賴對話4.png'];
@@ -712,170 +708,176 @@ const interDialogs = ['賴對話穿插1.png','賴對話穿插2.png'];
 const ruleImgs     = ['計點規則new1.png','計點規則new2.png','計點規則new3.png','計點規則new4.png','計點規則new5.png','計點規則new6.png'];
 const videoAssets  = ['開場白new.mp4','Line對話影片03.mp4'];
 
-/* === MOD 4: 僅預載「首屏必需」的資源 =============================== */
-const criticalImages = ['day3.png'];            //   ▶ 首幕背景
-const uiImages       = [...lauDialogs.slice(0,1)]; // ▶ 第一張對話圖（按需增減）
+/* === MOD 3: 極限精簡預載 —— 只載入「首幕背景 + 第一張對話」 ============ */
+const criticalImages = ['day3.png'];
+const uiImages       = ['賴對話1.png'];
 
-const totalAssets  = criticalImages.length + uiImages.length + videoAssets.length;
+const totalAssets  = criticalImages.length + uiImages.length; // ▶ 影片不計入
 let   loadedAssets = 0;
 function updateLoading() {
   loadedAssets++;
   const pct = Math.round((loadedAssets / totalAssets) * 100);
-  document.getElementById('loadingText').innerText        = pct + '%';
-  document.getElementById('loadingProgress').style.width  = pct + '%';
+  loadingText.innerText          = pct + '%';
+  loadingProgress.style.width    = pct + '%';
   if (loadedAssets >= totalAssets) setTimeout(startPre, 300);
 }
 
-// ✅ 預載關鍵圖片 --------------------------------------------------------
+/* ✅ 預載關鍵圖片 ------------------------------------------------------ */
 [...criticalImages, ...uiImages].forEach(fn => {
   const img = new Image();
   img.src   = `assets/${fn}`;
-  img.onload = updateLoading;
+  img.onload  = updateLoading;
   img.onerror = updateLoading;
 });
 
-// ✅ 影片僅抓 metadata，避免一開始就下載完整檔 --------------------------
-videoAssets.forEach(fn => {
-  const vid = document.createElement('video');
-  vid.src = `assets/${fn}`;
-  vid.preload = 'metadata';
-  vid.onloadedmetadata = updateLoading;
-  vid.onerror          = updateLoading;
-});
+/* ✅ 影片直接標記為已完成；iOS 不必等待 metadata ---------------------- */
+videoAssets.forEach(() => updateLoading());
 
-const loadingScreen = document.getElementById('loadingScreen');
-    const preContainer = document.getElementById('preContainer');
-    const introVideo = document.getElementById('introVideo');
-    const laiBg = document.getElementById('laiBackground');
-    const overlayContainer = document.getElementById('overlayContainer');
-    const laiReplyBtn = document.getElementById('laiReplyBtn');
-    const agreementImg = document.getElementById('agreementImg');
-    const readBtn = document.getElementById('readBtn');
-    let stage = 0; let lauIndex = 0, ruleIndex = 0;
-    function startPre() {
-      loadingScreen.style.display = 'none';
-      preContainer.style.display = 'block';
-      stage = 0;
-      playIntro();
-    }
-    function playIntro() {
-      introVideo.style.display = 'block';
-      introVideo.play();
-      introVideo.onended = () => {
-        introVideo.style.display = 'none';
-        laiBg.style.display = 'block';
-        overlayContainer.innerHTML = '';
-        lauIndex = 0;
-        stage = 1;
-      };
-    }
-    preContainer.onclick = function(e) {
-      if (e.target === laiReplyBtn || e.target === readBtn) return;
-      if (stage === 1) {
-        if (lauIndex < lauDialogs.length) {
-          let img = document.createElement('img');
-          img.src = `assets/${lauDialogs[lauIndex++]}`;
-          img.style.zIndex = 2;
-          overlayContainer.appendChild(img);
-          if (lauIndex === lauDialogs.length) {
-            laiReplyBtn.style.display = 'block';
-            stage = 2;
-          }
-        }
-      }
-      else if (stage === 3) {
-        overlayContainer.innerHTML = '';
-        let img = document.createElement('img');
-        img.src = `assets/${interDialogs[1]}`;
-        img.style.zIndex = 2;
-        overlayContainer.appendChild(img);
-        stage = 4;
-      }
-      else if (stage === 4) {
-        overlayContainer.innerHTML = '';
-        laiBg.style.display = 'none';
-        stage = 5;
-        playLineVideo();
-      }
-      else if (stage === 6) {
-        if (ruleIndex < ruleImgs.length) {
-          let imgs = preContainer.querySelectorAll('.rule-img');
-          imgs.forEach(img => img.remove());
-          let img = document.createElement('img');
-          img.src = `assets/${ruleImgs[ruleIndex++]}`;
-          img.className = 'rule-img';
-          img.style.zIndex = 2;
-          preContainer.appendChild(img);
-        }
-        if (ruleIndex === ruleImgs.length) {
-          let imgs = preContainer.querySelectorAll('.rule-img');
-          imgs.forEach(img => img.remove());
-          preContainer.style.display = 'none';
-          startGame();
-        }
-      }
-    };
-    laiReplyBtn.onclick = function(e) {
-      e.stopPropagation();
-      laiReplyBtn.style.display = 'none';
-      let img = document.createElement('img');
-      img.src = `assets/${interDialogs[0]}`;
+/* === MOD 4: 安全網 —— 最長 8 秒強制啟動 =============================== */
+setTimeout(() => { if (loadedAssets / totalAssets < 1) startPre(); }, 8000);
+
+/***********************  以下為原本的流程 *************************/
+const loadingScreen    = document.getElementById('loadingScreen');
+const preContainer     = document.getElementById('preContainer');
+const introVideo       = document.getElementById('introVideo');
+const laiBg            = document.getElementById('laiBackground');
+const overlayContainer = document.getElementById('overlayContainer');
+const laiReplyBtn      = document.getElementById('laiReplyBtn');
+const agreementImg     = document.getElementById('agreementImg');
+const readBtn          = document.getElementById('readBtn');
+
+let stage = 0, lauIndex = 0, ruleIndex = 0;
+function startPre() {
+  loadingScreen.style.display = 'none';
+  preContainer.style.display  = 'block';
+  stage = 0;
+  playIntro();
+}
+function playIntro() {
+  introVideo.style.display = 'block';
+  introVideo.play();
+  introVideo.onended = () => {
+    introVideo.style.display = 'none';
+    laiBg.style.display      = 'block';
+    overlayContainer.innerHTML = '';
+    lauIndex = 0;
+    stage    = 1;
+  };
+}
+
+preContainer.onclick = function (e) {
+  if (e.target === laiReplyBtn || e.target === readBtn) return;
+  if (stage === 1) {
+    if (lauIndex < lauDialogs.length) {
+      const img = document.createElement('img');
+      img.src   = `assets/${lauDialogs[lauIndex++]}`;
       img.style.zIndex = 2;
       overlayContainer.appendChild(img);
-      stage = 3;
-    };
-    function playLineVideo() {
-      let lineVideo = document.createElement('video');
-      lineVideo.src = 'assets/Line對話影片03.mp4';
-      lineVideo.autoplay = true; lineVideo.muted = true;
-      lineVideo.style.position = 'absolute'; lineVideo.style.top = 0; lineVideo.style.left = 0; lineVideo.style.width = '100%'; lineVideo.style.height = '100%';
-      preContainer.appendChild(lineVideo);
-      lineVideo.onended = () => {
-        lineVideo.remove();
-        agreementImg.style.display = 'block';
-        readBtn.style.display = 'block';
-        stage = 7;
-      };
+      if (lauIndex === lauDialogs.length) {
+        laiReplyBtn.style.display = 'block';
+        stage = 2;
+      }
     }
-    readBtn.onclick = function(e) {
-      e.stopPropagation();
-      agreementImg.style.display = 'none';
-      readBtn.style.display = 'none';
-      ruleIndex = 0;
-      stage = 6;
-      let img = document.createElement('img');
-      img.src = `assets/${ruleImgs[ruleIndex++]}`;
+  } else if (stage === 3) {
+    overlayContainer.innerHTML = '';
+    const img = document.createElement('img');
+    img.src   = `assets/${interDialogs[1]}`;
+    img.style.zIndex = 2;
+    overlayContainer.appendChild(img);
+    stage = 4;
+  } else if (stage === 4) {
+    overlayContainer.innerHTML = '';
+    laiBg.style.display = 'none';
+    stage = 5;
+    playLineVideo();
+  } else if (stage === 6) {
+    if (ruleIndex < ruleImgs.length) {
+      preContainer.querySelectorAll('.rule-img').forEach(img => img.remove());
+      const img = document.createElement('img');
+      img.src   = `assets/${ruleImgs[ruleIndex++]}`;
       img.className = 'rule-img';
       img.style.zIndex = 2;
       preContainer.appendChild(img);
-    };
-    // ------------- 進入劇情主體 ---------------
-    function startGame() {
-      document.getElementById('gameContainer').style.display = 'block';
-      renderScene('accept');
     }
-    const bgImage = document.getElementById('bgImage');
-    const speechText = document.getElementById('speechText');
-    const choicesContainer = document.getElementById('choicesContainer');
-    const clickOverlay = document.getElementById('clickOverlay');
-    let currentScene = 'accept';
-    function renderScene(id) {
-      const scene = scenes[id]; if (!scene) return;
-      currentScene = id;
-      bgImage.src = `assets/${scene.bg}`;
-      speechText.innerText = scene.speech;
-      choicesContainer.innerHTML = '';
-      if (scene.choices && scene.choices.length) {
-        clickOverlay.style.pointerEvents = 'none';
-        scene.choices.forEach(c => { const btn = document.createElement('button'); btn.innerText = c.text; btn.className = 'choice-button'; btn.onclick = () => goTo(c.next); choicesContainer.appendChild(btn); });
-      } else if (scene.autoNext) {
-        clickOverlay.style.pointerEvents = 'auto'; clickOverlay.onclick = () => goTo(scene.autoNext);
-      } else {
-        clickOverlay.style.pointerEvents = 'none';
-      }
+    if (ruleIndex === ruleImgs.length) {
+      preContainer.querySelectorAll('.rule-img').forEach(img => img.remove());
+      preContainer.style.display = 'none';
+      startGame();
     }
-    function goTo(id) { renderScene(id); }
-  </script>
+  }
+};
+
+laiReplyBtn.onclick = e => {
+  e.stopPropagation();
+  laiReplyBtn.style.display = 'none';
+  const img = document.createElement('img');
+  img.src   = `assets/${interDialogs[0]}`;
+  img.style.zIndex = 2;
+  overlayContainer.appendChild(img);
+  stage = 3;
+};
+
+function playLineVideo() {
+  const lineVideo = document.createElement('video');
+  lineVideo.src   = 'assets/Line對話影片03.mp4';
+  lineVideo.autoplay = true;
+  lineVideo.muted    = true;
+  Object.assign(lineVideo.style, { position:'absolute', top:0, left:0, width:'100%', height:'100%' });
+  preContainer.appendChild(lineVideo);
+  lineVideo.onended = () => {
+    lineVideo.remove();
+    agreementImg.style.display = 'block';
+    readBtn.style.display      = 'block';
+    stage = 7;
+  };
+}
+
+readBtn.onclick = e => {
+  e.stopPropagation();
+  agreementImg.style.display = 'none';
+  readBtn.style.display      = 'none';
+  ruleIndex = 0;
+  stage     = 6;
+  const img = document.createElement('img');
+  img.src   = `assets/${ruleImgs[ruleIndex++]}`;
+  img.className = 'rule-img';
+  img.style.zIndex = 2;
+  preContainer.appendChild(img);
+};
+
+/********************  進入劇情主體 *************************/
+function startGame() {
+  gameContainer.style.display = 'block';
+  renderScene('accept');
+}
+
+const bgImage          = document.getElementById('bgImage');
+const speechText       = document.getElementById('speechText');
+const choicesContainer = document.getElementById('choicesContainer');
+const clickOverlay     = document.getElementById('clickOverlay');
+
+function renderScene(id) {
+  const scene = scenes[id];
+  if (!scene) return;
+  bgImage.src        = `assets/${scene.bg}`;
+  speechText.innerText = scene.speech;
+  choicesContainer.innerHTML = '';
+  if (scene.choices && scene.choices.length) {
+    clickOverlay.style.pointerEvents = 'none';
+    scene.choices.forEach(c => {
+      const btn = document.createElement('button');
+      btn.innerText = c.text;
+      btn.className = 'choice-button';
+      btn.onclick   = () => renderScene(c.next);
+      choicesContainer.appendChild(btn);
+    });
+  } else if (scene.autoNext) {
+    clickOverlay.style.pointerEvents = 'auto';
+    clickOverlay.onclick = () => renderScene(scene.autoNext);
+  } else {
+    clickOverlay.style.pointerEvents = 'none';
+  }
+}
+</script>
 </body>
 </html>
-
