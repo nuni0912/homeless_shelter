@@ -972,12 +972,7 @@ const clickOverlay=document.getElementById('clickOverlay');
 function renderScene(id){
   const scene=scenes[id]; if(!scene) return;
   bgImage.src=`assets/${scene.bg}`;
-  if (scene.speech) {
-    speechBox.style.display = 'block';
-    speechText.innerText = scene.speech;
-  } else {
-    speechBox.style.display = 'none';
-  }
+  speechText.innerText=scene.speech;
   choicesContainer.innerHTML='';
   if(scene.choices&&scene.choices.length){
     clickOverlay.style.pointerEvents='none';
